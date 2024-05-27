@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>After School</title>
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.js"></script>
+    <script src="courses.js"></script>
+    <link rel="stylesheet" href="css/bootstrap.css" />
+  </head>
+
+  <body>
+    <div id="app" class="container">
+      <h1 v-text="sitename" class="mt-5"></h1>
+
+      <div v-if="showCourse">
+        <button
+          v-bind:disabled="cart.length==0"
+          v-on:click="showCheckout"
+          class="btn btn-outline-success btn-lg float-end m-4 p-2"
+        >
+          Checkout {{cartItemCount}}</button
+        ><br />
+
+        <div class="row m-3">
+          <div class="form-group col-md-6">
+            <label for="">Sort by</label>
+            <select
+              v-model="sortOption"
+              class="form-control"
+              style="width: 350px"
+            >
+              <option value="title">Title</option>
+              <option value="location">Location</option>
+              <option value="price">Price</option>
+              <option value="spaces">Spaces</option>
+            </select>
+            <br />
+            <select
+              v-model="sortOrder"
+              class="form-control"
+              style="width: 350px"
+            >
+              <option value="asc">Ascending</option>
+              <option value="desc">Descending</option>
+            </select>
+          </div>
+
+          <div class="col-md-6">
+            <input
+              class="form-control"
+              type="text"
+              v-model="searchQuery"
+              placeholder="Search lessons..."
+            />
+          </div>
+        </div>
+
+        <div class="row m-4">
+          <div
+            class="col-md-4"
+            v-for="course in sortedCourses"
+            :key="course.id"
+          >
+            <div class="card md-4 m-2 shadow">
+              <img
+                v-bind:src="course.image"
+                class="ct height: 300px; width: 100%; mx-auto d-block img-fluid"
+              />
+
+              <div class="card-body">
+                <h2 v-text="course.title"></h2>
+                <p v-html="course.description"></p>
+                <p>Location: {{course.location}}</p>
+                <p>Price: {{course.price}}</p>
+
+                <p>
+                  Available stock: {{course.availableInventory
+                  -cartCount(course.id) }}
+                </p>
+
+                <button
+                  v-on:click="addToCart(course)"
+                  v-if="canAddToCart(course)"
+                  class="btn btn-outline-info"
+                >
+                  Add to cart
+                </button>
+                <button disabled="disabled" v-else>Add to cart</button>
+                <span
+                  v-if="course.availableInventory
+            === cartCount(course.id)"
+                >
+                  All out!
+                </span>
+
+                <span
+                  v-else-if="course.availableInventory - cartCount(course.id) < 5"
+                >
+                  Only {{course.availableInventory - cartCount(course.id)}}
+                  left!
+                </span>
+                <span v-else>Buy now!</span>
+
+                <div>
+                  <span v-for="n in course.rating">★</span>
+                  <span v-for="n in 5-course.rating">☆</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div v-else>
+        <button
+          v-on:click="showCheckout"
+          class="btn btn-outline-primary float-start p-2"
+        >
+          Homepage {{cartItemCount}}
+        </button>
+        <br />
+        <br />
+
+        <h2>Shopping cart</h2>
+        <ul>
+          <li v-for="item in cartCourses" :key="item.id" class="m-3 col-md-4">
+            {{item.title}} {{item.price}}
+
+            <button
+              @click="removeFromCart(item.id)"
+              class="btn btn-outline-danger"
+            >
+              Remove
+            </button>
+          </li>
+        </ul>
+
+        <h2>Checkout</h2>
+        <p>
+          <strong>First Name:</strong>
+          <input
+            v-model.trim="order.firstName"
+            type="text"
+            class="form-control-sm"
+            pattern="^[a-zA-Z\s]+$"
+          />
+        </p>
+
+        <p>
+          <strong>Phone Number:</strong>
+          <input
+            v-model.number="order.phoneNumber"
+            type="number"
+            class="form-control-sm"
+          />
+        </p>
+
+        <h2>Order Information</h2>
+        <p>First Name: {{order.firstName}}</p>
+        <p>phone Number: {{order.phoneNumber}}</p>
+
+        <button v-bind:disabled="!validInput" v-on:click="submitForm">
+          Place Order
+        </button>
+      </div>
+    </div>
+
+    <script>
+      var app = new Vue({
+        el: "#app",
+        data: {
+          sitename: "Welcome to After School!",
+          courses: courses,
+          searchQuery: "",
+          cart: [],
+          showCourse: true,
+          sortOption: "title",
+          sortOrder: "asc",
+          order: {
+            firstName: "",
+            phoneNumber: "",
+          },
+        },
+
+        methods: {
+          addToCart(course) {
+            this.cart.push(course.id);
+          },
+          removeFromCart(courseID) {
+            const index = this.cart.indexOf(courseID);
+            if (index !== -1) {
+              this.cart.splice(index, 1);
+            }
+          },
+
+          showCheckout() {
+            this.showCourse = this.showCourse ? false : true;
+          },
+          submitForm() {
+            alert("Order submitted!");
+          },
+          canAddToCart(course) {
+            return course.availableInventory > this.cartCount(course.id);
+          },
+          cartCount(id) {
+            let count = 0;
+            for (let i = 0; i < this.cart.length; i++) {
+              if (this.cart[i] === id) {
+                count++;
+              }
+            }
+            return count;
+          },
+        },
+
+        computed: {
+          cartItemCount() {
+            return this.cart.length;
+          },
+          cartCourses() {
+            var items = [];
+            this.cart.forEach((id) => {
+              items.push(this.courses.filter((c) => c.id === id)[0]);
+            });
+            return items;
+          },
+
+          sortedCourses() {
+            var coursesArray = this.courses;
+            var order = this.sortOrder === "asc" ? 1 : -1;
+
+            if (this.searchQuery) {
+              var query = this.searchQuery.toLowerCase();
+              coursesArray = coursesArray.filter(
+                (c) =>
+                  c.title.toLowerCase().includes(query) ||
+                  c.location.toLowerCase().includes(query)
+              );
+            }
+            return coursesArray.sort((a, b) => {
+              if (a[this.sortOption] > b[this.sortOption]) return 1 * order;
+              if (a[this.sortOption] < b[this.sortOption]) return -1 * order;
+              return 0;
+            });
+          },
+
+          validInput() {
+            return (
+              /^[a-zA-Z\s]+$/.test(this.order.firstName) &&
+              /^\d+$/.test(this.order.phoneNumber)
+            );
+          },
+        },
+      });
+    </script>
+  </body>
+</html>
